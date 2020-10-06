@@ -1,10 +1,10 @@
-#define NDEBUG
+// #define NDEBUG
 #define EIGEN_USE_BLAS
 #define NDEBUGCERR
 
-// #include "utils/samplers.hpp"
+#include "utils/samplers.hpp"
 #include "utils/vose_alias.hpp"
-// #include "utils/greenkhorn.hpp"
+#include "utils/greenkhorn.hpp"
 #include "utils/clustering.hpp"
 
 #include <iostream>
@@ -44,38 +44,30 @@ using Eigen::VectorXd;
 int main()
 {
     Chrono chrono{};
-
-#if 0
+    std::cout << "Test" << std::endl;
     // Test greenkhorn
     using greenkhorn::KHORN_TYPE;
-    MatrixXd X{samplers::gaussianMixture(100, 2, 5, 1e-4)};
-    MatrixXd Y{samplers::gaussianMixture(100, 2, 5, 1e-4)};
-
-    // MatrixXd m(3, 2);
-    // VectorXd r(3);
-    // VectorXd c(2);
-
-    // m << 1, 2, 3, 4, 5, 6;
-    // r << .5, .3, .2;
-    // c << .6, .4;
+    MatrixXd X{samplers::gaussianMixture(5, 2, 5, 1e-4)};
+    MatrixXd Y{samplers::gaussianMixture(3, 2, 5, 1e-4)};
 
     double eps{1.};
-    // std::cout << "Enter desired precision: " << std::endl;
-    // std::cin >> eps;
-    // std::cout << "Precision is: " << eps << std::endl;
+    double eta{1.};
+    // std::cout << "Enter desired regularization: " << std::endl;
+    // std::cin >> eta;
+    // std::cout << "Regularization is: " << eta << std::endl;
+
+    VectorXd u {VectorXd::Zero(X.rows())};
+    VectorXd v {VectorXd::Zero(Y.rows())};
 
     chrono.reset();
-    auto result {greenkhorn::entropicWasserstein<KHORN_TYPE::GREEN>(X, Y, eps)};
+    auto result {greenkhorn::sinkhorn(greenkhorn::pairwiseSquaredDistance(X, Y), 
+                                      VectorXd::Ones(X.rows())/X.rows(), VectorXd::Ones(Y.rows())/Y.rows(), eps, eta,
+                                      u, v)};
     std::cout << "Classic done in: " << chrono.elapsed() / 1e6 << " ms. Iterations: " << result.errors.size() << ". " << std::endl;
     std::cout << "Error code: " << static_cast<int>(result.k_error) << std::endl;
     std::cout << "Transport cost:\n " << result.transportCost() << std::endl;
 
-    chrono.reset();
-    auto result_k {greenkhorn::entropicWassersteinKMeans<KHORN_TYPE::GREEN>(X, Y, eps)};
-    std::cout << "KMeans done in: " << chrono.elapsed() / 1e6 << " ms. Iterations: " << result_k.errors.size() << ". " << std::endl;
-    std::cout << "Error code: " << static_cast<int>(result_k.k_error) << std::endl;
-    std::cout << "Transport cost:\n " << result_k.transportCost() << std::endl;
-
+#if 0
     // Test KMeanspp
     chrono.reset();
     MatrixXd m{MatrixXd::Random(10000, 2)};
@@ -120,7 +112,6 @@ int main()
         std::cout << val << " ";
     }
     std::cout << std::endl;
-#endif
 
     // Measure speed of Vose Sampling
     std::vector<double> proba{.5, .3, .15, .05};
@@ -156,6 +147,6 @@ int main()
     }
     std::cout << chrono.elapsed() << std::endl;
 
-
+#endif
     return 0;
 }

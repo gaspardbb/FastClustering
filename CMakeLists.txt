@@ -5,16 +5,8 @@ project(_clustering)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)       # Use of tuple auto binding
 
-# set(WARNING_COMPILE_FLAGS "-pedantic-errors\
-#  -Wall\
-#  -Weffc++\
-#  -Wextra\
-#  -Wsign-conversion\
-#  -Werror\
-# ")
-set(PERFORMANCE_COMPILE_FLAGS "-O3 -march=native -lblas -llapack")
-
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} ${PERFORMANCE_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -lblas -llapack")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 
 ### PyBind Support 
 set(PYBIND11_CPP_STANDARD -std=c++17)           # Last C++ version
@@ -42,6 +34,12 @@ target_compile_options(main PRIVATE "-pedantic-errors")
 target_compile_options(main PRIVATE "-Weffc++")
 target_compile_options(main PRIVATE "-Wsign-conversion")
 target_compile_options(main PRIVATE "-Werror")
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    # Again, that's a bit ugly. The idea is to disable the error on unknown pragma when using
+    # Debug variants, where OpenMP is not used. 
+    message(STATUS "Debug configuration. Disabling unknown-pragmas warnings as errors.")
+    target_compile_options(main PRIVATE "-Wno-unknown-pragmas")
+endif()
 target_include_directories(main PRIVATE ${UTILS})
 
 ### Google test support
@@ -59,7 +57,7 @@ add_test(NAME test COMMAND clustering_test)
 
 ### OpenMP Support
 find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
+if((OpenMP_CXX_FOUND) AND (CMAKE_BUILD_TYPE MATCHES Release))
     target_link_libraries(_clustering PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(clustering_test PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(main PUBLIC OpenMP::OpenMP_CXX)

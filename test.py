@@ -21,6 +21,8 @@ res = m.entropic_wasserstein_sin(x_1, x_2, .1)
 print(f"Error message is: {res.error_msg}")
 print(f"Duality gap before changing: {res.duality_gap}")
 
+from clustering.utils.plot_utils import add_linear_regression
+
 import matplotlib.pyplot as plt
 plt.plot(res.errors)
 plt.xscale('log')

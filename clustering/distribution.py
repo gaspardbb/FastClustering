@@ -19,6 +19,7 @@ class Distribution(ABC):
         pass
 
     def has_same_dim(self, other: "Distribution"):
+        """Take one sample from two distributions and check if they have same dimension."""
         sample_this = self.sample(1)
         sample_other = other.sample(1)
         return sample_this.shape[-1] == sample_other.shape[-1]
@@ -33,6 +34,54 @@ class Distribution(ABC):
         ax.scatter(*X.T, **kwargs)
 
         return ax
+
+
+class UnstationnaryDistribution(Distribution, ABC):
+    """Mathematical distribution, which evolves with time."""
+
+    @abstractmethod
+    def step(self, n: int = 1):
+        pass
+
+
+class OscillatingGaussian(UnstationnaryDistribution):
+
+    def __init__(self, period: int, dim: int = 2, amplitude: float = 1., 
+                 direction: np.ndarray = None, initial_pos: np.ndarray = None, 
+                 covariance: float = 1.):
+        if direction is None:
+            direction = np.ones(dim)
+        if initial_pos is None:
+            initial_pos = np.zeros(dim)
+        assert direction.ndim == initial_pos.ndim == 1
+        assert direction.size == initial_pos.size == dim
+
+        self._direction = direction 
+        self._amplitude = amplitude
+        self._initial_pos = initial_pos
+        self._covariance = covariance
+        
+        self.period = period
+        self.dim = dim
+        self.current_step = 0
+
+    @property
+    def mean(self):
+        """Mean of the distribution at step t."""
+        fraction = self.current_step / self.period
+        return self._initial_pos + np.math.sin(2 * np.pi * fraction) * self._amplitude * self._direction
+    
+    @property
+    def covariance(self):
+        """Covariance of the distribution at step t. Can be overriden by subclasses."""
+        return np.eye(self.dim) * self._covariance
+    
+    def step(self, n: int = 1):
+        self.current_step += n
+
+    def sample(self, n: int = 1, **kwargs):
+        return np.random.multivariate_normal(self.mean, self.covariance, size=n)
+    
 
 
 class FiniteDistribution(Distribution):

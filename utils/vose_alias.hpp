@@ -124,7 +124,7 @@ public:
     Eigen::Matrix<index_t, Eigen::Dynamic, 1> sampleEig(const size_t n)
     {
         Eigen::Matrix<index_t, Eigen::Dynamic, 1> result{n};
-        for (auto i = 0; i < n; i++)
+        for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(n); i++)
         {
             result(i) = sample();
         }
