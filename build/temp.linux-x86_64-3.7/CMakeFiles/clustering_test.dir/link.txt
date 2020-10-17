@@ -1,0 +1,1 @@
+/usr/bin/c++  -DVERSION_INFO=\"0.0.1\"  -O3 -march=native -lblas -llapack  -rdynamic CMakeFiles/clustering_test.dir/tests/main.cpp.o CMakeFiles/clustering_test.dir/lib/googletest/googletest/src/gtest_main.cc.o  -o ../clustering_test lib/libgtest.a -lpthread -lgomp -lpthread 

@@ -1,0 +1,1 @@
+/usr/bin/x86_64-linux-gnu-g++-7 -fPIC   -O3 -march=native -lblas -llapack  -shared  -o _clustering.cpython-37m-x86_64-linux-gnu.so CMakeFiles/_clustering.dir/pybind.cpp.o -flto -lgomp -lpthread 

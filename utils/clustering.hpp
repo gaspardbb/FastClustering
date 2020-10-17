@@ -171,6 +171,30 @@ namespace clustering
         return std::pair<VectorXind_t, VectorXi>(centroid_ids, centroid_weights);
     }
 
+    std::pair<VectorXind_t, VectorXd> assignmentToCountTest(const VectorXind_t &assignment,
+                                                            const VectorXd &weights)
+    {
+        // Use a map to count the occurence
+        std::map<index_t, double> accumulator;
+        for (index_t i = 0; i < assignment.rows(); i++)
+        {
+            accumulator[assignment[i]] += weights(i);
+        }
+
+        VectorXind_t centroid_ids(accumulator.size());
+        VectorXd centroid_weights(accumulator.size());
+
+        index_t i{0};
+        for (const auto &[key, val] : accumulator)
+        {
+            centroid_ids[i] = key;
+            centroid_weights[i] = val;
+            i++;
+        }
+
+        return std::pair<VectorXind_t, VectorXd>(centroid_ids, centroid_weights);
+    }
+
     /**
      * @brief Returns the best candidate among a list of candidate, based on inertia.
      * Arrays containing the assignment and the distance are passed by reference rather than allocated inplace, to prevent multiple allocation.
@@ -300,62 +324,9 @@ namespace clustering
         }
     };
 
-    std::map<index_t, double> kmeansppTest(const Ref<const MatrixXdR> &points,
-                                           const Ref<const VectorXd> &weights,
-                                           const int k,
-                                           const double eps = 0.)
-    {
-        // Using VectorXind_t instead of std::vector to avoid conversion from size_type to index_t when indexing
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> discrete_dist(0, points.rows() - 1);
-
-        const size_t n_candidates = static_cast<size_t>(k > 0 ? 2 + int(log(k + 1)) : 8);
-
-        // Keep track of the centroid weights.
-        std::map<index_t, double> centroids_weights;
-        // Draw first centroid randomly
-        VectorXind_t assignment(points.rows());
-        index_t first_centroid{discrete_dist(gen)};
-        for (index_t i = 0; i < points.rows(); i++)
-        {
-            assignment[i] = first_centroid;
-            centroids_weights[first_centroid] += weights[i];
-        }
-
-        VectorXd distances{
-            (points.rowwise() - points.row(first_centroid)).rowwise().squaredNorm()};
-        distances = distances.array() * weights.array();
-
-        // Candidates at each round
-        VectorXind_t candidates(n_candidates);
-
-        // Memory allocated to store the information relative to the candidates
-        VectorXind_t assignment_candidate_best(points.rows());
-        VectorXind_t assignment_candidate_other(points.rows());
-        VectorXd distances_candidate_best(points.rows());
-        VectorXd distances_candidate_other(points.rows());
-
-        double inertia{distances.sum()};
-        int n_centroids{1};
-
-        while ((n_centroids < k) && (inertia > eps))
-        {
-            for (index_t j = 0; j < candidates.rows(); j++)
-                candidates[j] = discrete_dist(gen);
-            inertia = addPointTest(points, weights, candidates, centroids_weights, distances, assignment,
-                                   assignment_candidate_best, assignment_candidate_other,
-                                   distances_candidate_best, distances_candidate_other);
-            n_centroids++;
-        }
-
-        return centroids_weights;
-    }
-
     inline double addPointTest(const MatrixXdR &points,
                                const VectorXd &weights,
                                const VectorXind_t &candidates,
-                               std::map<index_t, double> &centroids_weights,
                                VectorXd &distances, VectorXind_t &assignment,
                                VectorXind_t &assignment_candidate_best, VectorXind_t &assignment_candidate_other,
                                VectorXd &distances_candidate_best, VectorXd &distances_candidate_other)
@@ -363,10 +334,6 @@ namespace clustering
         index_t id_candidate_best{candidates[0]};
         double inertia_candidate_best{0.};
         double inertia_candidate_other{0.};
-
-        // Initialize the best/other-candidates centroid weights
-        std::map<index_t, double> centroids_weights_best(centroids_weights);
-        std::map<index_t, double> centroids_weights_other(centroids_weights);
 
         // Compute inertia of the first candidate
         // This could be done with array indexing in Eigen 3.3.9, with, e.g:
@@ -383,8 +350,6 @@ namespace clustering
             else
             {
                 assignment_candidate_best[i] = id_candidate_best;
-                centroids_weights_best[assignment[i]] -= weights[i];     // Take off what you had on the previous centroid...
-                centroids_weights_best[id_candidate_best] += weights[i]; // ... and add it to where you belong now.
             }
         }
         inertia_candidate_best = distances_candidate_best.sum();
@@ -402,8 +367,6 @@ namespace clustering
                 else
                 {
                     assignment_candidate_other[i] = candidates[j];
-                    centroids_weights_other[assignment[i]] -= weights[i]; // Take off what you had on the previous centroid...
-                    centroids_weights_other[id_candidate_best] += weights[i];
                 }
             }
             inertia_candidate_other = distances_candidate_other.sum();
@@ -415,15 +378,62 @@ namespace clustering
                 assignment_candidate_best = assignment_candidate_other;
                 distances_candidate_best = distances_candidate_other;
                 id_candidate_best = candidates[j];
-                centroids_weights_best = centroids_weights_other;
             }
         }
 
         // Perform the change
         distances = distances_candidate_best;
         assignment = assignment_candidate_best;
-        centroids_weights = centroids_weights_best;
         return inertia_candidate_best;
+    }
+
+    VectorXind_t kmeansppTest(const Ref<const MatrixXdR> &points,
+                              const Ref<const VectorXd> &weights,
+                              const int k,
+                              const double eps = 0.)
+    {
+        // Using VectorXind_t instead of std::vector to avoid conversion from size_type to index_t when indexing
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> discrete_dist(0, points.rows() - 1);
+
+        const size_t n_candidates = static_cast<size_t>(k > 0 ? 2 + int(log(k + 1)) : 8);
+
+        // Draw first centroid randomly
+        VectorXind_t assignment(points.rows());
+        index_t first_centroid{discrete_dist(gen)};
+        for (index_t i = 0; i < points.rows(); i++)
+        {
+            assignment[i] = first_centroid;
+        }
+
+        VectorXd distances{
+            (points.rowwise() - points.row(first_centroid)).rowwise().squaredNorm()};
+        distances = distances.array() * weights.array(); // Taking weights into account
+
+        // Candidates at each round
+        VectorXind_t candidates(n_candidates);
+
+        // Memory allocated to store the information relative to the candidates
+        VectorXind_t assignment_candidate_best(points.rows());
+        VectorXind_t assignment_candidate_other(points.rows());
+        VectorXd distances_candidate_best(points.rows());
+        VectorXd distances_candidate_other(points.rows());
+
+        double inertia{distances.sum()};
+        int n_centroids{1};
+
+        while ((n_centroids < k) && (inertia > eps))
+        {
+            for (index_t j = 0; j < candidates.rows(); j++)
+                candidates[j] = discrete_dist(gen);
+            inertia = addPointTest(points, weights, candidates, distances, assignment,
+                                   assignment_candidate_best, assignment_candidate_other,
+                                   distances_candidate_best, distances_candidate_other);
+            n_centroids++;
+        }
+
+        return assignment;
     }
 
 } // namespace clustering

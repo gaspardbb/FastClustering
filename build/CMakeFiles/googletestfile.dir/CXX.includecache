@@ -1,0 +1,12 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/gaspardb/Documents/stage_mit/code/clustering/tests/main.cpp
+gtest/gtest.h
+/home/gaspardb/Documents/stage_mit/code/clustering/tests/gtest/gtest.h
+

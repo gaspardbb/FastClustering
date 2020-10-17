@@ -1,0 +1,1 @@
+/usr/bin/c++  -DVERSION_INFO=\"0.0.1\"  -O3 -march=native -lblas -llapack  -rdynamic CMakeFiles/main.dir/main.cpp.o  -o ../main -lgomp -lpthread 

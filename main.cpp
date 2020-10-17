@@ -1,4 +1,4 @@
-// #define NDEBUG
+#define NDEBUG
 #define EIGEN_USE_BLAS
 #define NDEBUGCERR
 
@@ -40,13 +40,36 @@ public:
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-
 int main()
 {
     Chrono chrono{};
     std::cout << "Test" << std::endl;
     // Test greenkhorn
     using greenkhorn::KHORN_TYPE;
+    greenkhorn::MatrixXdR cost_matrix(3, 2);
+    cost_matrix << 2, 2,
+        1, 2,
+        2, 1;
+    VectorXd r(VectorXd::Ones(3));
+    VectorXd c(VectorXd::Ones(2));
+    r.array() /= r.sum();
+    c.array() /= c.sum();
+    double eps{1e-5};
+    double eta{1.};
+    auto result{greenkhorn::khorn<KHORN_TYPE::SIN>(cost_matrix, r, c, eps, eta)};
+    std::cout << "Result: \n" << result.transport_plan << std::endl;
+#if 0
+    greenkhorn::MatrixXdR X(3, 2);
+    X << 0, 0,
+        1, 0,
+        0, 1;
+    greenkhorn::MatrixXdR Y(3, 2);
+    Y << 2, 2,
+        1, 2,
+        2, 1;
+    auto result {greenkhorn::entropicWassersteinKMeans<KHORN_TYPE::SIN>(X, Y, 10.)};
+    std::cout << "Result is: " << result.transportCost() << std::endl;
+
     MatrixXd X{samplers::gaussianMixture(5, 2, 5, 1e-4)};
     MatrixXd Y{samplers::gaussianMixture(3, 2, 5, 1e-4)};
 
@@ -67,7 +90,6 @@ int main()
     std::cout << "Error code: " << static_cast<int>(result.k_error) << std::endl;
     std::cout << "Transport cost:\n " << result.transportCost() << std::endl;
 
-#if 0
     // Test KMeanspp
     chrono.reset();
     MatrixXd m{MatrixXd::Random(10000, 2)};

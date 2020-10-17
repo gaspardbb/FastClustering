@@ -141,7 +141,7 @@ namespace greenkhorn
         //     C.maxCoeff() / eta + log(N) - 2 * log(std::min(r.minCoeff(), c.minCoeff()))};
         // const int iter_max{static_cast<int>(2. + 112. * N * R / eps)};
 
-        MatrixXdR log_B_t{C / eta}; // coupling matrix
+        MatrixXdR log_B_t{-C / eta}; // coupling matrix
         log_B_t.array() -= log_B_t.maxCoeff();
         log_B_t.colwise() += f;             // scale rows
         log_B_t.rowwise() += g.transpose(); // scale cols
@@ -315,7 +315,7 @@ namespace greenkhorn
         const VectorXd log_c{c.array().log().matrix()};
 
         // Values updated in the loop
-        MatrixXdR log_B_t{C / eta};
+        MatrixXdR log_B_t{-C / eta};
         log_B_t.array() -= log_B_t.maxCoeff();
         log_B_t.colwise() += f;             // scale rows
         log_B_t.rowwise() += g.transpose(); // scale cols
@@ -333,8 +333,8 @@ namespace greenkhorn
 
         while ((n_iter < iter_max) && E_t > eps)
         {
-            log_scale_rows = log_r.array() - log_r_B.array();
-            f += log_scale_rows;
+            log_scale_rows = log_r.array() - log_r_B.array(); // Scale rows in log domain
+            f += log_scale_rows;                              // Keep track of the dual potentials
             log_B_t.colwise() += log_scale_rows;
             assert(!log_B_t.hasNaN());
             logSumCols(log_B_t, log_c_B);
@@ -400,13 +400,32 @@ namespace greenkhorn
         const auto n{
             std::min(C.rows(), C.cols())};
         const double eta{
-            eps / (4 * log(n + 1))};
+            eps / (4 * log(n + 1))}; // TODO: ERROR CORRECTED HERE -- CHECK IT'S THE RIGHT FORMULA!!!!!
         const double eps_prime{
             eps / (8 * C.maxCoeff())};
 
+        // Prevent unnecessary struggle if the OT problem is trivial 
+        if (C.rows() == 1 || C.cols() == 1)
+        {
+#ifdef DEBUGCERR
+            std::cerr << "SPECIAL CASE: Solving is simple. C has shape: " << C.rows() << ", " << C.cols() << std::endl;
+#endif
+            // TODO: Quick fix -- Write the proper dual potentials 
+            std::vector<double> errors(1, 0.);
+            return khorn_return{r,
+                                c,
+                                errors,
+                                (C.rows() == 1) ? MatrixXd(c.transpose()) : MatrixXd(r),  // Super-important to cast to MatrixXd ! Otherwise the transpose is USELESS.
+                                C,
+                                KHORN_ERROR::SUCCESS,
+                                k};
+        }
+
         khorn_return result = khorn<k>(C,
-                                       (1 - eps_prime / 8) * r.array() + (eps_prime / (8 * C.rows())),
-                                       (1 - eps_prime / 8) * c.array() + (eps_prime / (8 * C.cols())),
+                                       //    (1 - eps_prime / 8) * r.array() + (eps_prime / (8 * C.rows())),
+                                       r,
+                                       //    (1 - eps_prime / 8) * c.array() + (eps_prime / (8 * C.cols())),
+                                       c,
                                        eps_prime / 2, eta,
                                        initial_u, initial_v, iter_max);
         roundingTrick(result.transport_plan, r, c);
@@ -448,7 +467,7 @@ namespace greenkhorn
     template <KHORN_TYPE k>
     khorn_return entropicWasserstein(const MatrixXdR &X, const MatrixXdR &Y,
                                      const VectorXd &r, const VectorXd &c,
-                                     double precision, int iter_max=100000)
+                                     double precision, int iter_max = 100000)
     {
         VectorXd initial_u{VectorXd::Zero(X.rows())};
         VectorXd initial_v{VectorXd::Zero(Y.rows())};
@@ -522,6 +541,40 @@ namespace greenkhorn
         Y_weights_d.array() /= Y_weights_d.sum();
 
         return entropicWasserstein<k>(X_centroids, Y_centroids, X_weights_d, Y_weights_d, precision / 3, iter_max);
+    }
+
+    template <KHORN_TYPE k>
+    khorn_return entropicWassersteinKMeansTest(
+        const Ref<const MatrixXdR> &X, const Ref<const MatrixXdR> &Y,
+        const Ref<const VectorXd> &a, const Ref<const VectorXd> &b,
+        double precision, int iter_max = 100000)
+    {
+#ifdef DEBUGCERR
+        std::cerr << "Entering Entropic Wasserstein KMeans Test..." << std::endl;
+#endif
+        // Run KMeans++ on each point cloud
+        auto [X_centroids_ids, X_weights]{clustering::assignmentToCountTest(
+            clustering::kmeansppTest(X, a, X.rows(), precision * precision / 9), a)};
+        auto [Y_centroids_ids, Y_weights]{clustering::assignmentToCountTest(
+            clustering::kmeansppTest(Y, b, Y.rows(), precision * precision / 9), b)};
+
+        // Need to wait Eigen 3.3.9 to be able to take slices
+        MatrixXdR X_centroids(X_centroids_ids.rows(), X.cols());
+        for (Eigen::Index i = 0; i < X_centroids_ids.rows(); i++)
+        {
+            X_centroids.row(i) = X.row(X_centroids_ids(i));
+        }
+
+        MatrixXdR Y_centroids(Y_centroids_ids.rows(), Y.cols());
+        for (Eigen::Index i = 0; i < Y_centroids_ids.rows(); i++)
+        {
+            Y_centroids.row(i) = Y.row(Y_centroids_ids(i));
+        }
+
+        X_weights.array() /= X_weights.sum();
+        Y_weights.array() /= Y_weights.sum();
+
+        return entropicWasserstein<k>(X_centroids, Y_centroids, X_weights, Y_weights, precision / 3, iter_max);
     }
 
     class PairedOnlineKMeans

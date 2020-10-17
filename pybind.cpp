@@ -35,6 +35,8 @@ PYBIND11_MODULE(_clustering, m)
 		using namespace clustering;
 		m.def("kmeanspp", &kmeanspp,
 			  "points"_a.noconvert(), "k"_a, "eps"_a = 0.);
+		m.def("kmeansppTest", &kmeansppTest,
+			  "points"_a.noconvert(), "weights"_a.noconvert(), "k"_a, "eps"_a = 0.);
 		m.def("afkmc2", &afkmc2Eig,
 			  "points"_a.noconvert(), "k"_a, "m"_a);
 		py::class_<OnlineKMeans>(m, "OnlineKMeans")
@@ -72,6 +74,8 @@ PYBIND11_MODULE(_clustering, m)
 			  "X"_a.noconvert(), "Y"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
 		m.def("entropic_wasserstein_kmeans_sin", py::overload_cast<const Ref<const MatrixXdR> &, const Ref<const MatrixXdR> &, double, int>(entropicWassersteinKMeans<KHORN_TYPE::SIN>),
 			  "X"_a.noconvert(), "Y"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
+		m.def("entropic_wasserstein_kmeans_test_sin", py::overload_cast<const Ref<const MatrixXdR> &, const Ref<const MatrixXdR> &, const Ref<const VectorXd> &, const Ref<const VectorXd> &, double, int>(entropicWassersteinKMeansTest<KHORN_TYPE::SIN>),
+			  "X"_a.noconvert(), "Y"_a.noconvert(), "a"_a.noconvert(), "b"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
 		m.def("entropic_wasserstein_sin_warm", &entropicWassersteinAddPoint<KHORN_TYPE::SIN>,
 			  "C"_a.noconvert(), "X"_a.noconvert(), "Y"_a.noconvert(),
 			  "x"_a.noconvert(), "y"_a.noconvert(), "precision"_a,
