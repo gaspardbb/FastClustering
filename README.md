@@ -29,6 +29,15 @@ I guess a more standard way is to include the librairies directly in the repo, a
 
 Then, simply do `pip install .`, after having moved to the appropriate environment if you use `conda` or `pyenv`. 
 
+## Speed comparison
+
+For the Vose Alias sampling: 
+
+![vosealias_vs_numpy](images/vosealias.png)
+
+For the KMeans++ implementation:
+![kmeanspp_cpp_vs_sklearn](images/kmeanspp.png)
+
 ## Disclaimers
 
 This was my first experience with C++, CMake, Pybind, Eigen, and testing. Obviously, there are likely horrible things lying here and there; if you find mistakes, please consider making a PR! 
@@ -36,6 +45,10 @@ This was my first experience with C++, CMake, Pybind, Eigen, and testing. Obviou
 Otherwise, this was mainly to get me acquainted with the previously mentioned tools. This has not the vocation for being push on pip. 
 
 ## TODO
+
+### Install
+
+For now, I set the CMake build type manually in `pybind.cpp`: `set(CMAKE_BUILD_TYPE Release)`. This can cause problem when building with CMake (make sure CMake is called with the same flag as the one in `pybind.cpp`!). I did this to ensure the `setup.py` file uses the `Release` configuration. There must certainly be a way to avoid that. 
 
 ### AFKMC^2 
 
