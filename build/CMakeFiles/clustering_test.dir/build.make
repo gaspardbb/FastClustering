@@ -116,9 +116,7 @@ clustering_test_EXTERNAL_OBJECTS =
 clustering_test: CMakeFiles/clustering_test.dir/tests/main.cpp.o
 clustering_test: CMakeFiles/clustering_test.dir/lib/googletest/googletest/src/gtest_main.cc.o
 clustering_test: CMakeFiles/clustering_test.dir/build.make
-clustering_test: lib/libgtest.a
-clustering_test: /usr/lib/gcc/x86_64-linux-gnu/7/libgomp.so
-clustering_test: /usr/lib/x86_64-linux-gnu/libpthread.so
+clustering_test: lib/libgtestd.a
 clustering_test: CMakeFiles/clustering_test.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/gaspardb/Documents/stage_mit/code/clustering/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable clustering_test"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/clustering_test.dir/link.txt --verbose=$(VERBOSE)

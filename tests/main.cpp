@@ -49,6 +49,7 @@ TEST(clustering, addPoint)
         0, 3,
         0, 4,
         0, 5;
+    Eigen::VectorXd weights{Eigen::VectorXd::Ones(6)/6};
     clustering::VectorXind_t candidates{2};
     candidates << 0, 4;
 
@@ -59,7 +60,7 @@ TEST(clustering, addPoint)
     clustering::VectorXind_t assign_cand_best{6}, assign_cand_other{6};
     clustering::VectorXd dist_cand_best{6}, dist_cand_other{6};
 
-    double inertia{clustering::addPoint(points, candidates, distances, assignment,
+    double inertia{clustering::addPoint(points, weights, candidates, distances, assignment,
                                         assign_cand_best, assign_cand_other, dist_cand_best, dist_cand_other)};
 
     clustering::VectorXind_t expected_assignment{6};
@@ -82,8 +83,8 @@ TEST(clustering, assignmentToCount)
     expected_centroid_id << 0, 1, 2;
     EXPECT_TRUE(centroid_id.isApprox(expected_centroid_id)) << centroid_id.transpose();
 
-    clustering::VectorXi expected_weights {3};
-    expected_weights << 2, 4, 2;
+    Eigen::VectorXd expected_weights {3};
+    expected_weights << 2/8, 4/8, 2/8;
     EXPECT_TRUE(weights.isApprox(expected_weights)) << expected_weights.transpose();
 }
 

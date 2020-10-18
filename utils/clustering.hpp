@@ -88,113 +88,6 @@ namespace clustering
         return result;
     }
 
-    inline double addPoint(const MatrixXdR &points, const VectorXind_t &candidates,
-                           VectorXd &distances, VectorXind_t &assignment,
-                           VectorXind_t &assignment_candidate_best, VectorXind_t &assignment_candidate_other,
-                           VectorXd &distances_candidate_best, VectorXd &distances_candidate_other);
-
-    VectorXind_t kmeanspp(const Ref<const MatrixXdR> &points, const int k, const double eps = 0.)
-    {
-        // TODO: Check well functionning
-
-        // Using VectorXind_t instead of std::vector to avoid conversion from size_type to index_t when indexing
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> discrete_dist(0, points.rows() - 1);
-
-        const size_t n_candidates = static_cast<size_t>(k > 0 ? 2 + int(log(k + 1)) : 8);
-
-        // Draw first centroid randomly
-        VectorXind_t assignment(points.rows());
-        index_t first_centroid{discrete_dist(gen)};
-        for (index_t i = 0; i < points.rows(); i++)
-        {
-            assignment[i] = first_centroid;
-        }
-
-        VectorXd distances{
-            (points.rowwise() - points.row(assignment[0])).rowwise().squaredNorm()};
-
-        // Candidates at each round
-        VectorXind_t candidates(n_candidates);
-
-        // Memory allocated to store the information relative to the candidates
-        VectorXind_t assignment_candidate_best(points.rows());
-        VectorXind_t assignment_candidate_other(points.rows());
-        VectorXd distances_candidate_best(points.rows());
-        VectorXd distances_candidate_other(points.rows());
-
-        double inertia{distances.sum()};
-        int n_centroids{1};
-
-        while ((n_centroids < k) && (inertia > eps))
-        {
-            for (index_t j = 0; j < candidates.rows(); j++)
-                candidates[j] = discrete_dist(gen);
-            inertia = addPoint(points, candidates, distances, assignment, assignment_candidate_best, assignment_candidate_other,
-                               distances_candidate_best, distances_candidate_other);
-            n_centroids++;
-        }
-
-        return assignment;
-    }
-
-    /**
-     * @brief From a vector of assignment, returns the centroid ids and their weights.
-     * 
-     * @param assignment Vector of size (n_points), where assignment(i) is the centroid assigned to point i.
-     * @return std::pair<VectorXind_t, VectorXi> The first element is the indices of the centroids, sorted in ascending order (curtesy of std::map),
-     * the second element is the number of element assigned to the corresponding centroid. 
-     * 
-     * @note This is a O(n_points) operation. 
-     */
-    std::pair<VectorXind_t, VectorXi> assignmentToCount(const VectorXind_t &assignment)
-    {
-        // Use a map to count the occurence
-        std::map<index_t, int> accumulator;
-        for (index_t i = 0; i < assignment.rows(); i++)
-        {
-            accumulator[assignment[i]]++;
-        }
-
-        VectorXind_t centroid_ids(accumulator.size());
-        VectorXi centroid_weights(accumulator.size());
-
-        index_t i{0};
-        for (const auto &[key, val] : accumulator)
-        {
-            centroid_ids[i] = key;
-            centroid_weights[i] = val;
-            i++;
-        }
-
-        return std::pair<VectorXind_t, VectorXi>(centroid_ids, centroid_weights);
-    }
-
-    std::pair<VectorXind_t, VectorXd> assignmentToCountTest(const VectorXind_t &assignment,
-                                                            const VectorXd &weights)
-    {
-        // Use a map to count the occurence
-        std::map<index_t, double> accumulator;
-        for (index_t i = 0; i < assignment.rows(); i++)
-        {
-            accumulator[assignment[i]] += weights(i);
-        }
-
-        VectorXind_t centroid_ids(accumulator.size());
-        VectorXd centroid_weights(accumulator.size());
-
-        index_t i{0};
-        for (const auto &[key, val] : accumulator)
-        {
-            centroid_ids[i] = key;
-            centroid_weights[i] = val;
-            i++;
-        }
-
-        return std::pair<VectorXind_t, VectorXd>(centroid_ids, centroid_weights);
-    }
-
     /**
      * @brief Returns the best candidate among a list of candidate, based on inertia.
      * Arrays containing the assignment and the distance are passed by reference rather than allocated inplace, to prevent multiple allocation.
@@ -208,128 +101,12 @@ namespace clustering
      * @param distances_candidate_best Idem.
      * @param distances_candidate_other Idem.
      */
-    inline double addPoint(const MatrixXdR &points, const VectorXind_t &candidates,
+    inline double addPoint(const MatrixXdR &points,
+                           const VectorXd &weights,
+                           const VectorXind_t &candidates,
                            VectorXd &distances, VectorXind_t &assignment,
                            VectorXind_t &assignment_candidate_best, VectorXind_t &assignment_candidate_other,
                            VectorXd &distances_candidate_best, VectorXd &distances_candidate_other)
-    {
-        index_t id_candidate_best{candidates[0]};
-        double inertia_candidate_best{0.};
-        double inertia_candidate_other{0.};
-
-        // Compute inertia of the first candidate
-        // This could be done with array indexing in Eigen 3.3.9, with, e.g:
-        // ... distances_candidate_best = (points.rowwise() - points.row(id_candidate_best)).rowwise().squaredNorm();
-        // ... distances_candidate_best = distances_candidate_best.cwiseMin(distances);
-        for (index_t i = 0; i < points.rows(); i++)
-        {
-            distances_candidate_best[i] = (points.row(i) - points.row(id_candidate_best)).squaredNorm();
-            if (distances[i] < distances_candidate_best[i])
-            {
-                distances_candidate_best[i] = distances[i];
-                assignment_candidate_best[i] = assignment[i];
-            }
-            else
-            {
-                assignment_candidate_best[i] = id_candidate_best;
-            }
-        }
-        inertia_candidate_best = distances_candidate_best.sum();
-
-        for (index_t j = 1; j < candidates.size(); j++)
-        {
-            for (index_t i = 0; i < points.rows(); i++)
-            {
-                distances_candidate_other[i] = (points.row(i) - points.row(candidates[j])).squaredNorm();
-                if (distances[i] < distances_candidate_other[i])
-                {
-                    distances_candidate_other[i] = distances[i];
-                    assignment_candidate_other[i] = assignment[i];
-                }
-                else
-                {
-                    assignment_candidate_other[i] = candidates[j];
-                }
-            }
-            inertia_candidate_other = distances_candidate_other.sum();
-
-            // Should we keep this new candidate or the former?
-            if (inertia_candidate_other < inertia_candidate_best)
-            {
-                inertia_candidate_best = inertia_candidate_other;
-                assignment_candidate_best = assignment_candidate_other;
-                distances_candidate_best = distances_candidate_other;
-                id_candidate_best = candidates[j];
-            }
-        }
-
-        // Perform the change
-        distances = distances_candidate_best;
-        assignment = assignment_candidate_best;
-        return inertia_candidate_best;
-    }
-
-    class OnlineKMeans
-    {
-        // TODO: can specify `norm` as a template parameter.
-    private:
-        MatrixXdR centroids;
-        VectorXd weights;
-        Eigen::Index n_tot;
-        double lr;
-
-    public:
-        OnlineKMeans(MatrixXdR &initial_points, double learning_rate) : centroids{initial_points},
-                                                                        weights{VectorXd::Ones(initial_points.rows())},
-                                                                        n_tot{initial_points.rows()},
-                                                                        lr{learning_rate}
-        {
-        }
-
-        const MatrixXdR &getCentroids() const { return centroids; }
-        const VectorXd &getWeights() const { return weights; }
-        int getNTot() const { return n_tot; }
-        double getLr() const { return lr; }
-
-        Eigen::Index addPoint(const VectorXd &point)
-        {
-            int id;
-
-            (centroids.rowwise() - point.transpose()).rowwise().squaredNorm().minCoeff(&id);
-
-            // Update position
-            centroids.row(id) = (1 - lr) * centroids.row(id) + lr * point.transpose();
-            // Update weight
-            weights(id) += 1.;
-
-            return id;
-        }
-
-        VectorXd addPointSoft(const VectorXd &point)
-        {
-            // Coefficient to update centroids is proportional to 1/sqdistance, + an offset in 1/k.
-            VectorXd inertia_coeff{(centroids.rowwise() - point.transpose()).rowwise().squaredNorm()};
-            inertia_coeff.array() = 1 / inertia_coeff.array();
-            inertia_coeff.array() = .5 * (inertia_coeff / inertia_coeff.sum()).array() + .5 / inertia_coeff.rows();
-
-            // Update position
-            // centroids.array().colwise() *= 1 - inertia_coeff.array();
-            // centroids.array().rowwise() += (inertia_coeff.array().rowwise() * point.array().transpose());
-            centroids.array() -= ((centroids.rowwise() - point.transpose()).array().colwise() * inertia_coeff.array());
-
-            // Update weights
-            weights += inertia_coeff;
-
-            return inertia_coeff;
-        }
-    };
-
-    inline double addPointTest(const MatrixXdR &points,
-                               const VectorXd &weights,
-                               const VectorXind_t &candidates,
-                               VectorXd &distances, VectorXind_t &assignment,
-                               VectorXind_t &assignment_candidate_best, VectorXind_t &assignment_candidate_other,
-                               VectorXd &distances_candidate_best, VectorXd &distances_candidate_other)
     {
         index_t id_candidate_best{candidates[0]};
         double inertia_candidate_best{0.};
@@ -387,10 +164,10 @@ namespace clustering
         return inertia_candidate_best;
     }
 
-    VectorXind_t kmeansppTest(const Ref<const MatrixXdR> &points,
-                              const Ref<const VectorXd> &weights,
-                              const int k,
-                              const double eps = 0.)
+    VectorXind_t kmeanspp(const Ref<const MatrixXdR> &points,
+                          const Ref<const VectorXd> &weights,
+                          const int k,
+                          const double eps = 0.)
     {
         // Using VectorXind_t instead of std::vector to avoid conversion from size_type to index_t when indexing
         std::random_device rd;
@@ -427,14 +204,115 @@ namespace clustering
         {
             for (index_t j = 0; j < candidates.rows(); j++)
                 candidates[j] = discrete_dist(gen);
-            inertia = addPointTest(points, weights, candidates, distances, assignment,
-                                   assignment_candidate_best, assignment_candidate_other,
-                                   distances_candidate_best, distances_candidate_other);
+            inertia = addPoint(points, weights, candidates, distances, assignment,
+                               assignment_candidate_best, assignment_candidate_other,
+                               distances_candidate_best, distances_candidate_other);
             n_centroids++;
         }
 
         return assignment;
     }
+
+    VectorXind_t kmeanspp(const Ref<const MatrixXdR> &points, const int k, const double eps = 0.)
+    {
+        VectorXd weights{VectorXd::Ones(points.rows()).array()/points.rows()};
+        return kmeanspp(points, weights, k, eps);
+    }
+
+    /**
+     * @brief From a vector of assignment, returns the centroid ids and their weights.
+     * 
+     * @param assignment Vector of size (n_points), where assignment(i) is the centroid assigned to point i.
+     * @param weights Vector of size (n_points), where assignment(i) is the weight assigned to point i.
+     * @return std::pair<VectorXind_t, VectorXi> The first element is the indices of the centroids, sorted in ascending order (curtesy of std::map),
+     * the second element is the number of element assigned to the corresponding centroid. 
+     * 
+     * @note This is a O(n_points) operation. 
+     */
+    std::pair<VectorXind_t, VectorXd> assignmentToCount(const VectorXind_t &assignment,
+                                                        const VectorXd &weights)
+    {
+        // Use a map to count the occurence
+        std::map<index_t, double> accumulator;
+        for (index_t i = 0; i < assignment.rows(); i++)
+        {
+            accumulator[assignment[i]] += weights(i);
+        }
+
+        VectorXind_t centroid_ids(accumulator.size());
+        VectorXd centroid_weights(accumulator.size());
+
+        index_t i{0};
+        for (const auto &[key, val] : accumulator)
+        {
+            centroid_ids[i] = key;
+            centroid_weights[i] = val;
+            i++;
+        }
+
+        return std::pair<VectorXind_t, VectorXd>(centroid_ids, centroid_weights);
+    }
+
+    std::pair<VectorXind_t, VectorXd> assignmentToCount(const VectorXind_t &assignment)
+    {
+        VectorXd weights{VectorXd::Ones(assignment.rows()).array()/assignment.rows()};
+        return assignmentToCount(assignment, weights);
+    }
+
+    class OnlineKMeans
+    {
+        // TODO: can specify `norm` as a template parameter.
+    private:
+        MatrixXdR centroids;
+        VectorXd weights;
+        Eigen::Index n_tot;
+        double lr;
+
+    public:
+        OnlineKMeans(MatrixXdR &initial_points, double learning_rate) : centroids{initial_points},
+                                                                        weights{VectorXd::Ones(initial_points.rows())},
+                                                                        n_tot{initial_points.rows()},
+                                                                        lr{learning_rate}
+        {
+        }
+
+        const MatrixXdR &getCentroids() const { return centroids; }
+        const VectorXd &getWeights() const { return weights; }
+        int getNTot() const { return n_tot; }
+        double getLr() const { return lr; }
+
+        Eigen::Index addPoint(const VectorXd &point)
+        {
+            int id;
+
+            (centroids.rowwise() - point.transpose()).rowwise().squaredNorm().minCoeff(&id);
+
+            // Update position
+            centroids.row(id) = (1 - lr) * centroids.row(id) + lr * point.transpose();
+            // Update weight
+            weights(id) += 1.;
+
+            return id;
+        }
+
+        VectorXd addPointSoft(const VectorXd &point)
+        {
+            // Coefficient to update centroids is proportional to 1/sqdistance, + an offset in 1/k.
+            VectorXd inertia_coeff{(centroids.rowwise() - point.transpose()).rowwise().squaredNorm()};
+            inertia_coeff.array() = 1 / inertia_coeff.array();
+            inertia_coeff.array() = .5 * (inertia_coeff / inertia_coeff.sum()).array() + .5 / inertia_coeff.rows();
+
+            // Update position
+            // centroids.array().colwise() *= 1 - inertia_coeff.array();
+            // centroids.array().rowwise() += (inertia_coeff.array().rowwise() * point.array().transpose());
+            centroids.array() -= ((centroids.rowwise() - point.transpose()).array().colwise() * inertia_coeff.array());
+
+            // Update weights
+            weights += inertia_coeff;
+
+            return inertia_coeff;
+        }
+    };
 
 } // namespace clustering
 #endif /* UTILS_CLUSTERING */

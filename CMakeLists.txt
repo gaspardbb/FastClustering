@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 2.8.12)
 project(_clustering)
 
 ### Don't know to what extent we can rely on PyBind to deal with Debug/Release configurations
+# If installing with `setup.py`, how to choose debug/release config? 
 # Comment/Uncomment in `main.cpp` and `pybind.cpp` too
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 ### Global compiler settings
 set(CMAKE_CXX_STANDARD 17)

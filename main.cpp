@@ -46,6 +46,7 @@ int main()
     std::cout << "Test" << std::endl;
     // Test greenkhorn
     using greenkhorn::KHORN_TYPE;
+#if 0
     greenkhorn::MatrixXdR cost_matrix(3, 2);
     cost_matrix << 2, 2,
         1, 2,
@@ -58,7 +59,6 @@ int main()
     double eta{1.};
     auto result{greenkhorn::khorn<KHORN_TYPE::SIN>(cost_matrix, r, c, eps, eta)};
     std::cout << "Result: \n" << result.transport_plan << std::endl;
-#if 0
     greenkhorn::MatrixXdR X(3, 2);
     X << 0, 0,
         1, 0,

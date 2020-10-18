@@ -33,9 +33,10 @@ PYBIND11_MODULE(_clustering, m)
 	// clustering header
 	{
 		using namespace clustering;
-		m.def("kmeanspp", &kmeanspp,
-			  "points"_a.noconvert(), "k"_a, "eps"_a = 0.);
-		m.def("kmeansppTest", &kmeansppTest,
+		m.def("kmeanspp", py::overload_cast<const Ref<const MatrixXdR> &,
+                          const Ref<const VectorXd> &,
+                          const int,
+                          const double>(kmeanspp),
 			  "points"_a.noconvert(), "weights"_a.noconvert(), "k"_a, "eps"_a = 0.);
 		m.def("afkmc2", &afkmc2Eig,
 			  "points"_a.noconvert(), "k"_a, "m"_a);
@@ -70,22 +71,21 @@ PYBIND11_MODULE(_clustering, m)
 			  "X"_a.noconvert(), "Y"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
 		m.def("entropic_wasserstein_sin", py::overload_cast<const Ref<const MatrixXdR> &, const Ref<const MatrixXdR> &, double, int>(entropicWasserstein<KHORN_TYPE::SIN>),
 			  "X"_a.noconvert(), "Y"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
-		m.def("entropic_wasserstein_kmeans_green", py::overload_cast<const Ref<const MatrixXdR> &, const Ref<const MatrixXdR> &, double, int>(entropicWassersteinKMeans<KHORN_TYPE::GREEN>),
-			  "X"_a.noconvert(), "Y"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
-		m.def("entropic_wasserstein_kmeans_sin", py::overload_cast<const Ref<const MatrixXdR> &, const Ref<const MatrixXdR> &, double, int>(entropicWassersteinKMeans<KHORN_TYPE::SIN>),
-			  "X"_a.noconvert(), "Y"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
-		m.def("entropic_wasserstein_kmeans_test_sin", py::overload_cast<const Ref<const MatrixXdR> &, const Ref<const MatrixXdR> &, const Ref<const VectorXd> &, const Ref<const VectorXd> &, double, int>(entropicWassersteinKMeansTest<KHORN_TYPE::SIN>),
+		m.def("entropic_wasserstein_kmeans_green", py::overload_cast<const Ref<const MatrixXdR> &, const Ref<const MatrixXdR> &, const Ref<const VectorXd> &, const Ref<const VectorXd> &,  double, int>(entropicWassersteinKMeans<KHORN_TYPE::GREEN>),
 			  "X"_a.noconvert(), "Y"_a.noconvert(), "a"_a.noconvert(), "b"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
-		m.def("entropic_wasserstein_sin_warm", &entropicWassersteinAddPoint<KHORN_TYPE::SIN>,
-			  "C"_a.noconvert(), "X"_a.noconvert(), "Y"_a.noconvert(),
-			  "x"_a.noconvert(), "y"_a.noconvert(), "precision"_a,
-			  "initial_u"_a, "initial_v"_a,
-			  "Testing purposes. Function is not optimized.");
-		m.def("entropic_wasserstein_green_warm", &entropicWassersteinAddPoint<KHORN_TYPE::GREEN>,
-			  "C"_a.noconvert(), "X"_a.noconvert(), "Y"_a.noconvert(),
-			  "x"_a.noconvert(), "y"_a.noconvert(), "precision"_a,
-			  "initial_u"_a, "initial_v"_a,
-			  "Testing purposes. Function is not optimized.");
+		m.def("entropic_wasserstein_kmeans_sin", py::overload_cast<const Ref<const MatrixXdR> &, const Ref<const MatrixXdR> &, const Ref<const VectorXd> &, const Ref<const VectorXd> &, double, int>(entropicWassersteinKMeans<KHORN_TYPE::SIN>),
+			  "X"_a.noconvert(), "Y"_a.noconvert(), "a"_a.noconvert(), "b"_a.noconvert(), "precision"_a, "iter_max"_a = 10000);
+		// Not ready for release yet :)
+		// m.def("entropic_wasserstein_sin_warm", &entropicWassersteinAddPoint<KHORN_TYPE::SIN>,
+		// 	  "C"_a.noconvert(), "X"_a.noconvert(), "Y"_a.noconvert(),
+		// 	  "x"_a.noconvert(), "y"_a.noconvert(), "precision"_a,
+		// 	  "initial_u"_a, "initial_v"_a,
+		// 	  "Testing purposes. Function is not optimized.");
+		// m.def("entropic_wasserstein_green_warm", &entropicWassersteinAddPoint<KHORN_TYPE::GREEN>,
+		// 	  "C"_a.noconvert(), "X"_a.noconvert(), "Y"_a.noconvert(),
+		// 	  "x"_a.noconvert(), "y"_a.noconvert(), "precision"_a,
+		// 	  "initial_u"_a, "initial_v"_a,
+		// 	  "Testing purposes. Function is not optimized.");
 
 		m.def("greenkhorn", &greenkhorn::greenkhorn,
 			  "C"_a.noconvert(), "r"_a.noconvert(), "c"_a.noconvert(),

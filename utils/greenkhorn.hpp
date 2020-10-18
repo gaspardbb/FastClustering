@@ -514,37 +514,7 @@ namespace greenkhorn
     }
 
     template <KHORN_TYPE k>
-    khorn_return entropicWassersteinKMeans(const Ref<const MatrixXdR> &X, const Ref<const MatrixXdR> &Y, double precision,
-                                           int iter_max = 100000)
-    {
-        // Run KMeans++ on each point cloud
-        auto [X_centroids_ids, X_weights]{clustering::assignmentToCount(clustering::kmeanspp(X, X.rows(), precision / 3))};
-        auto [Y_centroids_ids, Y_weights]{clustering::assignmentToCount(clustering::kmeanspp(Y, Y.rows(), precision / 3))};
-
-        // Need to wait Eigen 3.3.9 to be able to take slices
-        MatrixXdR X_centroids(X_centroids_ids.rows(), X.cols());
-        for (Eigen::Index i = 0; i < X_centroids_ids.rows(); i++)
-        {
-            X_centroids.row(i) = X.row(X_centroids_ids(i));
-        }
-
-        MatrixXdR Y_centroids(Y_centroids_ids.rows(), Y.cols());
-        for (Eigen::Index i = 0; i < Y_centroids_ids.rows(); i++)
-        {
-            Y_centroids.row(i) = Y.row(Y_centroids_ids(i));
-        }
-
-        // Is there a more efficient way of doing that?
-        VectorXd X_weights_d{X_weights.cast<double>()};
-        X_weights_d.array() /= X_weights_d.sum();
-        VectorXd Y_weights_d{Y_weights.cast<double>()};
-        Y_weights_d.array() /= Y_weights_d.sum();
-
-        return entropicWasserstein<k>(X_centroids, Y_centroids, X_weights_d, Y_weights_d, precision / 3, iter_max);
-    }
-
-    template <KHORN_TYPE k>
-    khorn_return entropicWassersteinKMeansTest(
+    khorn_return entropicWassersteinKMeans(
         const Ref<const MatrixXdR> &X, const Ref<const MatrixXdR> &Y,
         const Ref<const VectorXd> &a, const Ref<const VectorXd> &b,
         double precision, int iter_max = 100000)
@@ -553,10 +523,10 @@ namespace greenkhorn
         std::cerr << "Entering Entropic Wasserstein KMeans Test..." << std::endl;
 #endif
         // Run KMeans++ on each point cloud
-        auto [X_centroids_ids, X_weights]{clustering::assignmentToCountTest(
-            clustering::kmeansppTest(X, a, X.rows(), precision * precision / 9), a)};
-        auto [Y_centroids_ids, Y_weights]{clustering::assignmentToCountTest(
-            clustering::kmeansppTest(Y, b, Y.rows(), precision * precision / 9), b)};
+        auto [X_centroids_ids, X_weights]{clustering::assignmentToCount(
+            clustering::kmeanspp(X, a, X.rows(), precision * precision / 9), a)};
+        auto [Y_centroids_ids, Y_weights]{clustering::assignmentToCount(
+            clustering::kmeanspp(Y, b, Y.rows(), precision * precision / 9), b)};
 
         // Need to wait Eigen 3.3.9 to be able to take slices
         MatrixXdR X_centroids(X_centroids_ids.rows(), X.cols());

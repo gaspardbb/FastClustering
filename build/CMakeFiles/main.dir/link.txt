@@ -1,1 +1,1 @@
-/usr/bin/x86_64-linux-gnu-g++-7    -O3 -march=native -lblas -llapack  -rdynamic CMakeFiles/main.dir/main.cpp.o  -o main -lgomp -lpthread 
+/usr/bin/x86_64-linux-gnu-g++-7    -g  -rdynamic CMakeFiles/main.dir/main.cpp.o  -o main 
