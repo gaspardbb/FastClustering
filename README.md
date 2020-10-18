@@ -36,6 +36,7 @@ For the Vose Alias sampling:
 ![vosealias_vs_numpy](images/vosealias.png)
 
 For the KMeans++ implementation:
+
 ![kmeanspp_cpp_vs_sklearn](images/kmeanspp.png)
 
 ## Disclaimers
